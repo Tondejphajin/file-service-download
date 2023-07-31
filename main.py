@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from app.api import download, health_check, ticket, register, license
-
+from app.api import *
 
 app = FastAPI()
 
@@ -17,3 +17,12 @@ app.include_router(license.router, prefix="/appapi/v1/license", tags=["license"]
 @app.get("/")
 async def root():
     return FileResponse("app/api/templates/index.html")
+
+def starter_process():
+    # check token and register app
+    register.register()
+   
+    # get license
+    license.check_license()
+    # get and update health-check
+    health_check.update_health_check_record() 
