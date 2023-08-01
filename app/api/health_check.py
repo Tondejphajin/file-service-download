@@ -32,29 +32,43 @@ def check_worker() -> bool:
         raise HTTPException(status_code=500, detail="Celery worker not available")
     return True
 
-def patch_health_check(payload:dict):
-    url = f"{env.get_value('APP_REGISTER_DOMAIN')}/appapi/v1/health-check?appid={env.get_value('APP_ID')}&token={env.get_value('TOKEN')}"
-    response = requests.patch(url=url, json=payload)
-    print(response.text)
-    print(response.json())
-    print(response.status_code)
+def patch_health_check(payload:dict, app_id:str=None, token:str=None):
+    if not app_id:
+        app_id = env.get_value('APP_ID')
 
-    if response.json()["data"]["is_online"] != "True":
-        raise HTTPException(status_code=500, detail="Server is not available")
+    if not token:
+        token = env.get_value('TOKEN')
 
-    return response.json()["data"]["is_online"]
+    if app_id and token:
+        health_id = payload['healthid']
 
-def get_health_check():
-    url = f"{env.get_value('APP_REGISTER_DOMAIN')}/appapi/v1/health-check?appid={env.get_value('APP_ID')}&token={env.get_value('TOKEN')}"
-    response = requests.get(url=url)
-    print(response.text)
-    print(response.json())
-    print(response.status_code)
+        url = f"{env.get_value('APP_REGISTER_DOMAIN')}/appapi/v1/health-check/{health_id}?appid={app_id}&token={token}"
+        response = requests.patch(url=url, json=payload)
 
-    if response.status_code != 200:
-        raise HTTPException(status_code=500, detail="Server is not available")
+        if response.json()["is_online"] != True:
+            return HTTPException(status_code=500, detail="Server is not available")
 
-    return response.json()[0]
+        return response.json()["is_online"]
+
+    return HTTPException(status_code=500, detail="app id or token are not available.")
+
+def get_health_check(app_id:str=None, token:str=None):
+    if not app_id:
+        app_id = env.get_value('APP_ID')
+
+    if not token:
+        token = env.get_value('TOKEN')
+
+    if app_id and token:
+        url = f"{env.get_value('APP_REGISTER_DOMAIN')}/appapi/v1/health-check?appid={app_id}&token={token}"
+        response = requests.get(url=url)
+
+        if response.status_code != 200:
+            return HTTPException(status_code=500, detail="Server is not available")
+
+        return response.json()[0]
+    
+    return HTTPException(status_code=500, detail="app id or token are not available.")
 
 @router.get("/services")
 async def get_services_status():
@@ -67,12 +81,14 @@ async def get_health_check_record():
     return {"status": get_response}
 
 @router.patch("/")
-async def update_health_check_record():
-    get_response = get_health_check()
-    if get_response["data"]["is_online"] != "True":
+def update_health_check_record(app_id:str=None, token:str=None):
+    get_response = get_health_check(app_id, token)
+    
+    if isinstance(get_response, dict) and get_response["is_online"] != True:
 
         # update health check status
-        get_response["data"]["is_online"] = True
+        get_response["is_online"] = True
 
         patch_response = patch_health_check(get_response)
         return {"status": patch_response}
+    return get_response
