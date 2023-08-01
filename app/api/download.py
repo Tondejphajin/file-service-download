@@ -64,7 +64,7 @@ async def add_download_queue_dev(file_paths: List[FilePaths]):
 
     for file_path in file_paths:
         task_id = uuid()
-        expire_time = datetime.utcnow() + timedelta(hours=1)
+        expire_time = datetime.utcnow() + timedelta(hours=1) # set default expire time to 1 hour for testing
 
         prepare_download.apply_async(
             (
