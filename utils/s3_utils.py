@@ -1,5 +1,7 @@
 import datetime, boto3, os, logging
-from utils.env import Env
+
+# from utils.env import Env
+from env import Env
 from botocore.exceptions import ClientError
 
 env = Env()
@@ -35,20 +37,20 @@ class S3Utils(S3Client):
             )
             version_id = response["Versions"][0]["VersionId"]
             last_modified = response["Versions"][0]["LastModified"]
-            return version_id, last_modified
+            return version_id, last_modified.replace(microsecond=0)
         except ClientError as e:
             logging.error(e)
             return None, None
 
-    def get_all_object_version_and_last_modified(
-        self, prefix: str
-    ) -> dict[str, datetime.datetime]:
+    def get_object_all_version_and_last_modified(self, prefix: str) -> dict[str:str]:
         mapping = {}
         response = self.client.list_object_versions(
             Bucket=self.bucket_name, Prefix=prefix
         )
         for obj_version in response.get("Versions", []):
-            mapping[obj_version["VersionId"]] = obj_version["LastModified"]
+            mapping[
+                obj_version["LastModified"].replace(microsecond=0).isoformat()
+            ] = obj_version["VersionId"]
         return mapping
 
     def upload_file(
@@ -72,7 +74,7 @@ class S3Utils(S3Client):
             object_head = self.client.head_object(
                 Bucket=self.bucket_name, Key=object_name, VersionId=version_id
             )
-            last_modified = object_head["LastModified"]
+            last_modified = object_head["LastModified"].replace(microsecond=0)
 
             return version_id, last_modified
         except ClientError as e:
@@ -102,7 +104,7 @@ class S3Utils(S3Client):
             object_head = self.client.head_object(
                 Bucket=self.bucket_name, Key=object_name, VersionId=version_id
             )
-            last_modified = object_head["LastModified"]
+            last_modified = object_head["LastModified"].replace(microsecond=0)
 
             file_name_and_version_id[os.path.basename(file_name)] = version_id
             file_name_and_last_modified[file_name] = last_modified
@@ -132,5 +134,16 @@ if __name__ == "__main__":
     #     Bucket=s3_utils.bucket_name,
     #     Key="videos/Twitter.mp4",
     # )
-    x, y = s3_utils.get_object_version_and_last_modified("videos")
-    print(x, y)
+    dict_last_ver = s3_utils.get_object_all_version_and_last_modified("videos/")
+    print(dict_last_ver)
+    key_list = list(dict_last_ver.keys())
+    print(key_list[0])
+    print(type(key_list[0]))
+    print("*" * 50)
+    (
+        version_id,
+        last_modified,
+    ) = s3_utils.get_object_version_and_last_modified("videos")
+    print(version_id, last_modified)
+    print(type(version_id))
+    print(type(last_modified))
