@@ -1,7 +1,8 @@
 import datetime, boto3, os, logging
 
-# from utils.env import Env
-from env import Env
+from utils.env import Env
+
+# from env import Env
 from botocore.exceptions import ClientError
 
 env = Env()
