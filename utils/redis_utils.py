@@ -1,9 +1,11 @@
 import redis, json, datetime
 
-# from utils.env import Env
-# from utils.s3_utils import S3Utils
-from env import Env
-from s3_utils import S3Utils
+from utils.env import Env
+
+from utils.s3_utils import S3Utils
+
+# from env import Env
+# from s3_utils import S3Utils
 
 env = Env()
 s3_utils = S3Utils()
