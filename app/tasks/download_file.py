@@ -3,8 +3,6 @@ from utils.minio_utils import MinioUtils
 from utils.redis_utils import RedisUtils
 from utils.s3_utils import S3Utils
 from utils import tasks_utils, time_convert_utils, zipfile_utils
-from datetime import datetime, timedelta
-import logging
 
 minio_utils = MinioUtils()
 redis_utils = RedisUtils()
@@ -20,13 +18,14 @@ def prepare_download(
     raw_expired_time: int,
     version_id: str,
 ):
-    # check if the request is cached
-    # redis_key, download_url = redis_utils.is_request_cached(
-    #     path_name, include, exclude, version_id
-    # )
+    # remove the trailing slash since the path_name in redis does not have it
+    if path_name.endswith("/"):
+        path_name = path_name.rstrip("/")
 
-    redis_key = None
-    download_url = None
+    # check if the request is cached
+    redis_key, download_url = redis_utils.check_cached(
+        path_name, include, exclude, version_id
+    )
 
     if redis_key is None and download_url is None:
         # convert `raw_expired_time` to seconds, check if it is more than 0 seconds, and check if `version_id` is not None
