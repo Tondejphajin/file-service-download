@@ -3,20 +3,20 @@ from fastapi.responses import FileResponse
 from app.api import download, health_check, ticket, register, license
 import time
 
-def starter_process():
-    # check token and register app
-    result = register.register()
+# def starter_process():
+#     # check token and register app
+#     result = register.register()
     
-    if result and result['registration_info'] != "failed":
-        app_id, token = result['data']['app_id'], result['data']['token']
+#     if result and result['registration_info'] != "failed":
+#         app_id, token = result['data']['app_id'], result['data']['token']
         
-        time.sleep(2)
-        # get license
-        license.check_license(app_id, token)
-        # get and update health-check
-        health_check.update_health_check_record(app_id, token) 
+#         time.sleep(2)
+#         # get license
+#         license.check_license(app_id, token)
+#         # get and update health-check
+#         health_check.update_health_check_record(app_id, token) 
 
-starter_process()
+# starter_process()
 
 app = FastAPI()
 
