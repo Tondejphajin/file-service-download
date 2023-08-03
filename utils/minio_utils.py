@@ -1,5 +1,8 @@
 from minio import Minio
+
 from utils.env import Env
+
+# from env import Env
 from minio.lifecycleconfig import (
     LifecycleConfig,
     Rule,
@@ -8,7 +11,7 @@ from minio.lifecycleconfig import (
 )
 from minio.commonconfig import ENABLED, Filter, Tags
 from minio.versioningconfig import VersioningConfig
-import os
+import os, datetime
 
 env = Env()
 
@@ -130,17 +133,25 @@ class MinioUtils(MinioClient):
             except Exception as e:
                 raise e
 
-    def download_object(
-        self, minio_path: str, download_file_name: str, version_id: str = None
+    def download_single_object(
+        self, minio_path: str, download_file_name: str, version_id: str = ""
     ) -> None:
         try:
-            self.client.fget_object(
-                self.bucket_name, minio_path, download_file_name, version_id=version_id
-            )
+            if version_id != "":
+                self.client.fget_object(
+                    self.bucket_name,
+                    minio_path,
+                    download_file_name,
+                    version_id=version_id,
+                )
+            else:
+                self.client.fget_object(
+                    self.bucket_name, minio_path, download_file_name
+                )
         except Exception as e:
             raise e
 
-    def download_objects(
+    def download_multiple_objects(
         self, minio_paths: str, include: list[str], version_id: str = ""
     ) -> None:
         if minio_paths.endswith("/") is False:
@@ -149,12 +160,19 @@ class MinioUtils(MinioClient):
             download_path = minio_paths + include[i]
             download_file_name = include[i]
             try:
-                self.client.fget_object(
-                    self.bucket_name,
-                    download_path,
-                    download_file_name,
-                    version_id=version_id,
-                )
+                if version_id != "":
+                    self.client.fget_object(
+                        self.bucket_name,
+                        download_path,
+                        download_file_name,
+                        version_id=version_id,
+                    )
+                else:
+                    self.client.fget_object(
+                        self.bucket_name,
+                        download_path,
+                        download_file_name,
+                    )
             except Exception as e:
                 raise e
 
@@ -255,8 +273,30 @@ if __name__ == "__main__":
     #         file_name = object.object_name.split("/")[-1]
     #         file_name_and_version_id[file_name] = object.last_modified
     # print(file_name_and_version_id)
-    minio_client.download_object(
-        minio_path="videos/Twitter.mp4",
-        download_file_name="Twitter.mp4",
-        version_id="7f9900cd-bafa-4154-9e30-c7f304d1c127",
+    # minio_client.download_object(
+    #     minio_path="videos/Twitter.mp4",
+    #     download_file_name="Twitter.mp4",
+    #     version_id="7f9900cd-bafa-4154-9e30-c7f304d1c127",
+    # )
+
+    result = minio_client.client.stat_object(
+        minio_client.bucket_name, "videos/Slides.pdf"
     )
+    last_modified = result.last_modified
+    print(last_modified)
+    print(type(last_modified))
+    print(last_modified.isoformat())
+    print(type(last_modified.isoformat()))
+
+    from redis_utils import RedisUtils
+
+    redis_client = RedisUtils()
+    redis_client.client.hset("uuid99", "last_modified", last_modified.isoformat())
+    print("*" * 50)
+    retrieved_last_modified = redis_client.client.hget("uuid1", "last_modified")
+    print(retrieved_last_modified)
+    print(type(retrieved_last_modified))
+    retrieved_last_modified.encode("utf-8")
+    retrieved_last_modified = datetime.datetime.fromisoformat(retrieved_last_modified)
+    print(retrieved_last_modified)
+    print(type(retrieved_last_modified))
