@@ -1,8 +1,5 @@
 from minio import Minio
-
 from utils.env import Env
-
-# from env import Env
 from minio.lifecycleconfig import (
     LifecycleConfig,
     Rule,
@@ -12,6 +9,7 @@ from minio.lifecycleconfig import (
 from minio.commonconfig import ENABLED, Filter, Tags
 from minio.versioningconfig import VersioningConfig
 import os, datetime
+
 
 env = Env()
 
@@ -78,39 +76,80 @@ class MinioUtils(MinioClient):
                 return False
         return True
 
-    def get_object_url(self, object_name: str) -> str:
-        return self.client.presigned_get_object(self.bucket_name, object_name)
+    def get_object_url(self, object_name: str, version_id: str = "") -> str:
+        if version_id != "":
+            return self.client.presigned_get_object(
+                self.bucket_name, object_name, version_id=version_id
+            )
+        else:
+            return self.client.presigned_get_object(self.bucket_name, object_name)
 
-    def get_object_url_with_version_id(self, object_name: str, version_id: str) -> str:
-        return self.client.presigned_get_object(
-            self.bucket_name, object_name, version_id=version_id
-        )
-
-    def get_object_url_list(
-        self, minio_path: str, object_name_list: list[str]
+    def get_object_url_from_list(
+        self,
+        minio_path: str,
+        object_name_list: list[str],
+        expire: int,
+        version_id: str = "",
     ) -> list[str]:
+        if isinstance(expire, int):
+            expire = datetime.timedelta(seconds=expire)
+
         if minio_path.endswith("/") is False:
             minio_path = minio_path + "/"
+
         urls = []
-        for object_name in object_name_list:
-            urls.append(
-                self.client.presigned_get_object(
-                    self.bucket_name, minio_path + object_name
+
+        if version_id != "":
+            for object_name in object_name_list:
+                urls.append(
+                    self.client.presigned_get_object(
+                        self.bucket_name,
+                        minio_path + object_name,
+                        version_id=version_id,
+                        expires=expire,
+                    )
                 )
-            )
+        else:
+            for object_name in object_name_list:
+                urls.append(
+                    self.client.presigned_get_object(
+                        self.bucket_name, minio_path + object_name, expires=expire
+                    )
+                )
+
         return urls
 
     def get_objects_url_from_local_path(
-        self, minio_path: str, local_path: list[str]
+        self, minio_path: str, local_path: list[str], expire: int, version_id: str = ""
     ) -> list[str]:
+        if isinstance(expire, int):
+            expire = datetime.timedelta(seconds=expire)
+
+        if minio_path.endswith("/") is False:
+            minio_path = minio_path + "/"
+
         urls = []
-        for path in local_path:
-            object_name = os.path.basename(path)
-            urls.append(
-                self.client.presigned_get_object(
-                    self.bucket_name, minio_path + object_name
+
+        if version_id != "":
+            for path in local_path:
+                object_name = os.path.basename(path)
+                urls.append(
+                    self.client.presigned_get_object(
+                        self.bucket_name,
+                        minio_path + object_name,
+                        version_id=version_id,
+                        expires=expire,
+                    )
                 )
-            )
+        else:
+            for path in local_path:
+                object_name = os.path.basename(path)
+                urls.append(
+                    self.client.presigned_get_object(
+                        self.bucket_name, minio_path + object_name, expires=expire
+                    )
+                )
+
         return urls
 
     def upload_object(self, minio_path: str, local_file_path: str) -> None:
@@ -127,7 +166,7 @@ class MinioUtils(MinioClient):
             object_name = os.path.basename(local_file_path[i])
             try:
                 self.client.fput_object(
-                    self.bucket_name, minio_path + object_name, object_name
+                    self.bucket_name, minio_path + "/" + object_name, object_name
                 )
                 os.remove(local_file_path[i])
             except Exception as e:
@@ -226,6 +265,11 @@ class MinioUtils(MinioClient):
         for object in objects:
             object_list.append(object.object_name)
         return object_list
+
+    def get_path_last_modified(self, path_name: str) -> str:
+        if path_name.endswith("/"):
+            path_name = path_name.rstrip("/")
+        return self.client.stat_object(self.bucket_name, path_name).last_modified
 
 
 if __name__ == "__main__":
