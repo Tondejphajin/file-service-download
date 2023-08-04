@@ -72,6 +72,9 @@ def prepare_download(
                 zip_file_path = zipfile_utils.split_file_and_remove(
                     zip_file_path, task_id
                 )
+            else:
+                zip_file_path = [zip_file_path]
+
             # upload the zip file to minio
             minio_utils.upload_objects_from_path_and_remove(
                 minio_path=task_id, local_file_path=zip_file_path
