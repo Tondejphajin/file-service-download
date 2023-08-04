@@ -4,6 +4,7 @@ from utils.redis_utils import RedisUtils
 from utils.s3_utils import S3Utils
 from utils import tasks_utils, time_convert_utils, zipfile_utils
 
+
 minio_utils = MinioUtils()
 redis_utils = RedisUtils()
 s3_utils = S3Utils()
