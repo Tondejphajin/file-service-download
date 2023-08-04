@@ -159,6 +159,14 @@ class MinioUtils(MinioClient):
         except Exception as e:
             raise e
 
+    def upload_object_and_remove(self, minio_path: str, local_file_path: str) -> None:
+        minio_path = minio_path + "/" + os.path.basename(local_file_path)
+        try:
+            self.client.fput_object(self.bucket_name, minio_path, local_file_path)
+            os.remove(local_file_path)
+        except Exception as e:
+            raise e
+
     def upload_objects_from_path_and_remove(
         self, minio_path: str, local_file_path: list[str]
     ) -> None:
