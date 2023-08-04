@@ -6,6 +6,26 @@ Symbols:
 X = completed
 % = in-progress
 
+Test files
+
+1. Test call API (unit test)
+
+- [] SSE
+  https://github.com/aio-libs/aiohttp-sse/blob/master/tests/test_sse.py
+
+2. Test download task
+
+- [] Use upload/ download/ delete task files
+
+3. Health_check
+
+- [] initial check
+
+Multiple Path Download
+
+- [] one zip file output
+- [] like mega, gg drive
+
 0. DFD (Documentation)
 
 - [ ] DFD is Data Flow Diagram
