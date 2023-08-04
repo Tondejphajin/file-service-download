@@ -185,7 +185,7 @@ def test_single_path_multiple_files_download_cache():  #
     )
 
 
-download_url_multiple_path_single_file = []
+download_url_multiple_path_single_file = []  #
 
 
 def test_multiple_paths_single_file_download():
@@ -249,7 +249,7 @@ def test_multiple_paths_single_file_download():
         download_url_multiple_path_single_file.append(download_url_list)
 
 
-def test_multiple_paths_single_file_download_cache():
+def test_multiple_paths_single_file_download_cache():  #
     expired_time = datetime.utcnow() + timedelta(hours=1)
     response = client.post(
         "/download/",
@@ -312,15 +312,143 @@ def test_multiple_paths_single_file_download_cache():
             download_url_multiple_path_single_file[i]
         ) == collections.Counter(download_url_list)
 
-    print("PASS")
+
+download_url_multiple_path_multiple_files = []
+
+
+def test_multiple_paths_multiple_files_download():
+    expired_time = datetime.utcnow() + timedelta(hours=1)
+    response = client.post(
+        "/download/",
+        json=[
+            {
+                "path_name": "videos",
+                "include": ["Avengers.mp4", "Go.mp4"],
+                "exclude": ["Slides.pdf"],
+                "expired_time": expired_time.isoformat(),
+                "version_id": "",
+            },
+            {
+                "path_name": "pictures",
+                "include": ["pic.jpg", "qr.jpg"],
+                "exclude": [],
+                "expired_time": expired_time.isoformat(),
+                "version_id": "",
+            },
+            {
+                "path_name": "documents",
+                "include": ["Cap1.1.pdf", "MD5.pdf", "new_schedule.xlsx"],
+                "exclude": [],
+                "expired_time": expired_time.isoformat(),
+                "version_id": "",
+            },
+        ],
+    )
+    assert response.status_code == 200
+
+    ticket_id = []
+
+    for key, _ in response.json().items():
+        if is_valid_uuid(key):
+            ticket_id.append(key)
+        else:
+            ticket_id = None
+            assert False
+
+    for id in ticket_id:
+        ticket_status = client.get(f"ticket/{id}/status")
+        for line in ticket_status.text.split("\n"):
+            # print(line)
+            if line.startswith("data:"):
+                data = json.loads(line[len("data: ") :])
+                # print(data)
+                # print(type(data))
+                if data["status"] == "SUCCESS":
+                    assert data["status"] == "SUCCESS"
+                    break
+
+    global download_url_multiple_path_multiple_files
+
+    for id in ticket_id:
+        ticket_result = client.get(f"ticket/{id}/result")
+        download_url_list = ticket_result.json()["result"]
+        assert isinstance(download_url_list, list)
+        assert len(download_url_list) > 0
+        download_url_multiple_path_multiple_files.append(download_url_list)
+
+
+def test_multiple_paths_multiple_files_download_cache():
+    expired_time = datetime.utcnow() + timedelta(hours=1)
+    response = client.post(
+        "/download/",
+        json=[
+            {
+                "path_name": "videos",
+                "include": ["Avengers.mp4", "Go.mp4"],
+                "exclude": ["Slides.pdf"],
+                "expired_time": expired_time.isoformat(),
+                "version_id": "",
+            },
+            {
+                "path_name": "pictures",
+                "include": ["pic.jpg", "qr.jpg"],
+                "exclude": [],
+                "expired_time": expired_time.isoformat(),
+                "version_id": "",
+            },
+            {
+                "path_name": "documents",
+                "include": ["Cap1.1.pdf", "MD5.pdf", "new_schedule.xlsx"],
+                "exclude": [],
+                "expired_time": expired_time.isoformat(),
+                "version_id": "",
+            },
+        ],
+    )
+    assert response.status_code == 200
+
+    ticket_id = []
+
+    for key, _ in response.json().items():
+        if is_valid_uuid(key):
+            ticket_id.append(key)
+        else:
+            ticket_id = None
+            assert False
+
+    for id in ticket_id:
+        ticket_status = client.get(f"ticket/{id}/status")
+        for line in ticket_status.text.split("\n"):
+            # print(line)
+            if line.startswith("data:"):
+                data = json.loads(line[len("data: ") :])
+                # print(data)
+                # print(type(data))
+                if data["status"] == "SUCCESS":
+                    assert data["status"] == "SUCCESS"
+                    break
+
+    global download_url_multiple_path_multiple_files
+
+    for i in range(0, len(ticket_id)):
+        ticket_result = client.get(f"ticket/{ticket_id[i]}/result")
+        download_url_list = json.loads(ticket_result.json()["result"])
+        assert isinstance(download_url_list, list)
+        assert len(download_url_list) > 0
+
+        assert collections.Counter(
+            download_url_multiple_path_multiple_files[i]
+        ) == collections.Counter(download_url_list)
 
 
 if __name__ == "__main__":
-    # test_root()
-    # test_ping()
-    # test_single_path_single_file_download()
-    # test_single_path_single_file_download_cache()
-    # test_single_path_multiple_files_download()
-    # test_single_path_multiple_files_download_cache()
+    test_root()
+    test_ping()
+    test_single_path_single_file_download()
+    test_single_path_single_file_download_cache()
+    test_single_path_multiple_files_download()
+    test_single_path_multiple_files_download_cache()
     test_multiple_paths_single_file_download()
     test_multiple_paths_single_file_download_cache()
+    test_multiple_paths_multiple_files_download()
+    test_multiple_paths_multiple_files_download_cache()
