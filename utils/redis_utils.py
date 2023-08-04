@@ -1,11 +1,7 @@
 import redis, json, datetime
-
 from utils.env import Env
-
 from utils.s3_utils import S3Utils
 
-# from env import Env
-# from s3_utils import S3Utils
 
 env = Env()
 s3_utils = S3Utils()
@@ -51,10 +47,9 @@ class RedisUtils(RedisClient):
                 if key_expired == key:
                     print("Key expired: ", key_expired)
                     break
-
         return True
 
-    def is_request_cached(
+    def check_cached(
         self, file_path: str, include: list, exclude: list, version_id: str
     ) -> tuple[str, str]:
         task_id, download_url = None, None
@@ -62,46 +57,43 @@ class RedisUtils(RedisClient):
         all_keys = self.client.keys()
         for key in all_keys:
             if self.client.type(key) == "hash":  # Check if key is a hash
-                is_path_the_same = (
+                same_path = (
                     True if file_path == self.client.hget(key, "path") else False
                 )
-                is_include_the_same = (
-                    True
-                    if set(include) == set(json.loads(self.client.hget(key, "include")))
-                    else False
-                )
-                is_exclude_the_same = (
-                    True
-                    if set(exclude) == set(json.loads(self.client.hget(key, "exclude")))
-                    else False
-                )
-                is_version_id_same = (
+                include_field = self.client.hget(key, "include")
+                if include_field is None:
+                    same_include = False
+                else:
+                    same_include = (
+                        True
+                        if set(include)
+                        == set(json.loads(self.client.hget(key, "include")))
+                        else False
+                    )
+                exclude_field = self.client.hget(key, "exclude")
+                if exclude_field is None:
+                    same_exclude = False
+                else:
+                    same_exclude = (
+                        True
+                        if set(exclude)
+                        == set(json.loads(self.client.hget(key, "exclude")))
+                        else False
+                    )
+                same_version_id = (
                     True if version_id == self.client.hget(key, "version_id") else False
                 )
-                has_last_modified = (
-                    True if self.client.hexists(key, "last_modified") else False
-                )
-                print(
-                    f"key: {key}, type: {self.client.type(key)}, file_path: {file_path}, include: {include}, exclude: {exclude}, version_id: {version_id}"
-                )
-                # print(f"is_hash: True")
-                # print(f"is_path_the_same: {bool_is_path_the_same}")
-                # print(f"is_include_the_same: {bool_is_include_the_same}")
-                # print(f"is_exclude_the_same: {bool_is_exclude_the_same}")
-                # print(f"is_version_id_the_same: {bool_version_id_the_same}")
-                # print("-" * 50)
-                if (
-                    is_path_the_same
-                    and is_include_the_same
-                    and is_exclude_the_same
-                    and is_version_id_same
-                ):
+
+                if same_path and same_include and same_exclude and same_version_id:
                     if self.client.hget(key, "version_id") == "":
                         # check if the `include` files are the latest version
+                        has_last_modified = (
+                            True if self.client.hexists(key, "last_modified") else False
+                        )
                         if has_last_modified:
                             # get the last modified of the path on minio
 
-                            last_modified_redis_str = redis_client.client.hget(
+                            last_modified_redis_str = self.client.hget(
                                 key, "last_modified"
                             )
                             last_modified_redis_obj = datetime.datetime.fromisoformat(
@@ -119,12 +111,12 @@ class RedisUtils(RedisClient):
                                         file_path
                                     )
                                 )
-                                print("DATA_DICT:", all_version_and_modified)
+                                # print("DATA_DICT:", all_version_and_modified)
 
                                 last_modified_list = list(
                                     all_version_and_modified.keys()
                                 )
-                                print("DATA_LIST:", last_modified_list)
+                                # print("DATA_LIST:", last_modified_list)
 
                                 for last_modified in last_modified_list:
                                     # convert string to datetime object
@@ -201,67 +193,7 @@ class RedisUtils(RedisClient):
         self.client.hset(key, mapping=field_values)
         self.client.expire(key, expire_time)
 
-
-if __name__ == "__main__":
-    redis_client = RedisUtils()
-    # hash_dict = {
-    #     "path": "file_path",
-    #     "include": json.dumps(["include_json"]),
-    #     "exclude": json.dumps(["exclude_json"]),
-    #     "url": -1,
-    #     "expire_time": 3600,
-    # }
-    # redis_client.hset_from_dict("uuid69", hash_dict)
-    # print(redis_client.client.hgetall("uuid69"))
-    # print(type(redis_client.client.hget("uuid69", "url")))
-    # url = ["url1", "url2", "url3"]
-    # url = json.dumps(url)
-    # redis_client.client.hset("uuid69", "url", url)
-    # print(redis_client.client.hgetall("uuid69"))
-
-    # print(type(json.loads(redis_client.client.hget("uuid69", "url"))))
-
-    # key = "uuid69"
-    # file_path = "file_path"
-    # include = ["include_json"]
-    # exclude = ["exclude_json"]
-    # version_id = ""
-    # key, is_cached = redis_client.is_request_cached(
-    #     key=key,
-    #     file_path=file_path,
-    #     include=include,
-    #     exclude=exclude,
-    #     version_id=version_id,
-    # )
-    # print(key, is_cached)
-
-    key = "uuid99"
-    file_path = "videos"
-    include = ["include_json"]
-    exclude = ["exclude_json"]
-    expire_time = 3600
-    version_id = ""
-
-    redis_client.cached_request(
-        key=key,
-        file_path=file_path,
-        include=include,
-        exclude=exclude,
-        expire_time=expire_time,
-        version_id=version_id,
-    )
-
-    # has_field = redis_client.client.hexists(key, "last_modified")
-    # print(has_field)
-
-    key2 = "uuid69"
-    file_path2 = "videos"
-    include2 = ["include_json"]
-    exclude2 = ["exclude_json"]
-    expire_time2 = 3600
-    version_id2 = ""
-
-    task_id, download_url = redis_client.is_request_cached(
-        file_path=file_path2, include=include2, exclude=exclude2, version_id=version_id2
-    )
-    print(task_id, download_url)
+    def cached_last_modified(self, key: str, path_name: str) -> None:
+        path_last_modified = s3_utils.get_object_version_and_last_modified(path_name)
+        path_last_modified = path_last_modified[1]
+        self.client.hset(key, "last_modified", path_last_modified.isoformat())
