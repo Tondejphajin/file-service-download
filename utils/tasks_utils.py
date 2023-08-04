@@ -4,6 +4,7 @@ from utils.minio_utils import MinioUtils
 from utils.zipfile_utils import zip_files_and_remove, split_file_and_remove
 from utils.s3_utils import S3Utils
 
+
 minio_utils = MinioUtils()
 env = Env()
 s3_utils = S3Utils()
@@ -34,7 +35,7 @@ def get_file_paths(filenames: list[str]) -> list[str]:
     return paths
 
 
-def is_file_path_exceed_max_download_size(file_path: str) -> bool:
+def is_file_from_path_exceed_max_download_size(file_path: str) -> bool:
     max_download_size = env.get_value("MAX_DOWNLOAD_SIZE")
     file_size = os.path.getsize(file_path)
     if file_size > max_download_size:
