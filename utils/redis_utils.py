@@ -1,6 +1,8 @@
 import redis, json, datetime
 from utils.env import Env
 from utils.s3_utils import S3Utils
+from app.api.models import FilePaths
+from datetime import datetime, timedelta, timezone
 
 
 env = Env()
@@ -187,7 +189,7 @@ class RedisUtils(RedisClient):
             "include": json.dumps(include),
             "exclude": json.dumps(exclude),
             # "url": "",
-            "expire_time": expire_time,
+            "expired_time": expire_time,
             "version_id": version_id,
         }
         self.client.hset(key, mapping=field_values)
@@ -197,3 +199,28 @@ class RedisUtils(RedisClient):
         path_last_modified = s3_utils.get_object_version_and_last_modified(path_name)
         path_last_modified = path_last_modified[1]
         self.client.hset(key, "last_modified", path_last_modified.isoformat())
+
+    def cached_request_multiple_paths(
+        self, key: str, file_paths: list[FilePaths]
+    ) -> None:
+        self.client.hset(key, "request", json.dumps(file_paths))
+
+    def check_cached_multiple_paths(self, request1: list[FilePaths]) -> bool:
+        request2 = json.loads(self.client.hget("test", "request"))
+
+        if len(request1) != len(request2):
+            return False
+
+        for dict1, dict2 in zip(request1, request2):
+            if dict1["path_name"] != dict2["path_name"]:
+                return False
+            if sorted(dict1["include"]) != sorted(dict2["include"]):
+                return False
+            if sorted(dict1["exclude"]) != sorted(dict2["exclude"]):
+                return False
+            if dict1["expired_time"] != dict2["expired_time"]:
+                return False
+            if dict1["version_id"] != dict2["version_id"]:
+                return False
+
+        return True
