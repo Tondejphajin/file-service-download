@@ -93,6 +93,8 @@ class MinioUtils(MinioClient):
     ) -> list[str]:
         if isinstance(expire, int):
             expire = datetime.timedelta(seconds=expire)
+            if expire > datetime.timedelta(days=7):
+                expire = datetime.timedelta(days=7)
 
         if minio_path.endswith("/") is False:
             minio_path = minio_path + "/"
@@ -124,6 +126,8 @@ class MinioUtils(MinioClient):
     ) -> list[str]:
         if isinstance(expire, int):
             expire = datetime.timedelta(seconds=expire)
+            if expire > datetime.timedelta(days=7):
+                expire = datetime.timedelta(days=7)
 
         if minio_path.endswith("/") is False:
             minio_path = minio_path + "/"
