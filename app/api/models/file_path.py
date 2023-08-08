@@ -7,5 +7,5 @@ class FilePaths(BaseModel):
     path_name: str
     include: Optional[List[str]] = []
     exclude: Optional[List[str]] = []
-    expire_time: Optional[datetime] = datetime.utcnow() + timedelta(days=1)
+    expired_time: Optional[datetime] = datetime.utcnow() + timedelta(days=1)
     version_id: Optional[str] = ""
