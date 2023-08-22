@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from utils.uuid_utils import is_valid_uuid
 import json
 import collections
+from time import sleep
 
 client = TestClient(app)
 
@@ -44,8 +45,12 @@ def test_single_path_single_file_download():  #
         else:
             ticket_id = None
             assert False
-
-    ticket_status = client.get(f"ticket/{ticket_id}/status")
+    sleep(1)
+    ticket_status = client.get(
+        f"ticket/{ticket_id}/status", timeout=3
+    )  # problem is here
+    print(ticket_status)
+    print(ticket_status.text.split("\n"))
     for line in ticket_status.text.split("\n"):
         # print(line)
         if line.startswith("data:"):
@@ -443,12 +448,22 @@ def test_multiple_paths_multiple_files_download_cache():
 
 if __name__ == "__main__":
     test_root()
+    print("test_root() passed")
     test_ping()
-    test_single_path_single_file_download()
-    test_single_path_single_file_download_cache()
-    test_single_path_multiple_files_download()
-    test_single_path_multiple_files_download_cache()
-    test_multiple_paths_single_file_download()
-    test_multiple_paths_single_file_download_cache()
-    test_multiple_paths_multiple_files_download()
-    test_multiple_paths_multiple_files_download_cache()
+    print("test_ping() passed")
+    # test_single_path_single_file_download()
+    # print("test_single_path_single_file_download() passed")
+    # test_single_path_single_file_download_cache()
+    # print("test_single_path_single_file_download_cache() passed")
+    # test_single_path_multiple_files_download()
+    # print("test_single_path_multiple_files_download() passed")
+    # test_single_path_multiple_files_download_cache()
+    # print("test_single_path_multiple_files_download_cache() passed")
+    # test_multiple_paths_single_file_download()
+    # print("test_multiple_paths_single_file_download() passed")
+    # test_multiple_paths_single_file_download_cache()
+    # print("test_multiple_paths_single_file_download_cache() passed")
+    # test_multiple_paths_multiple_files_download()
+    # print("test_multiple_paths_multiple_files_download() passed")
+    # test_multiple_paths_multiple_files_download_cache()
+    # print("test_multiple_paths_multiple_files_download_cache() passed")

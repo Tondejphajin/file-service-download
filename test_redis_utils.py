@@ -18,7 +18,7 @@ class TestRedisUtils:
 
         self.file_path_2 = {
             "path_name": "documents",
-            "include": ["Cap1.1.pdf", "MD.pdf"],
+            "include": ["Cap1.1.pdf", "MD5.pdf"],
             "exclude": [],
             "expired_time": self.default_expired_time.isoformat(),
             "version_id": "",
@@ -33,9 +33,21 @@ class TestRedisUtils:
         }
 
     def test_multiple_paths_cache(self):
+        all_requested_path = [self.file_path_1, self.file_path_2, self.file_path_3]
+        requested_paths = {}
+
+        for path in all_requested_path:
+            path_id = str(uuid.uuid4())
+            requested_paths[path_id] = path
+
         redis_key = str(uuid.uuid4())
-        file_paths = [self.file_path_1, self.file_path_2, self.file_path_3]
-        self.redis_utils.cached_request_multiple_paths(redis_key, file_paths)
+
+        send_to_redis = {
+            "id": redis_key,
+            "data": requested_paths,
+        }
+
+        self.redis_utils.cached_multiple_paths_request(send_to_redis)
 
 
 if __name__ == "__main__":
