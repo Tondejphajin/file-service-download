@@ -1,9 +1,10 @@
+from typing import Dict, List, Union
 from worker import app
 from utils.minio_utils import MinioUtils
 from utils.redis_utils import RedisUtils
 from utils.s3_utils import S3Utils
 from utils import tasks_utils, time_convert_utils, zipfile_utils
-
+from app.api.models import FilePaths
 
 minio_utils = MinioUtils()
 redis_utils = RedisUtils()
@@ -18,7 +19,7 @@ def prepare_download(
     exclude: list,
     raw_expired_time: int,
     version_id: str,
-):
+) -> Union[str, List[str]]:
     # remove the trailing slash since the path_name in redis does not have it
     if path_name.endswith("/"):
         path_name = path_name.rstrip("/")
@@ -136,3 +137,32 @@ def prepare_download(
             redis_utils.update_hash_from_url_list(task_id, download_url)
             redis_utils.cached_last_modified(task_id, path_name)
             return download_url
+
+
+@app.task
+def prepare_download_multi_path(
+    task_id: str, request_data: list[FilePaths]
+) -> Union[str, List[str]]:
+    # check if the request is cached
+    redis_key, download_url = redis_utils.check_cached_multiple_paths(request_data)
+
+    if redis_key is None and download_url is None:
+        # convert data
+        # cache the request and continue the download process
+        pass
+    elif isinstance(redis_key, str):
+        if isinstance(download_url, str):
+            # return the url if the request is cached
+            return download_url
+        if download_url is None:
+            # return the uuid if the request is cached but the url is not cached
+            return redis_key
+    else:
+        return "Error cases"
+
+
+@app.task
+def prepare_download_dev(
+    requested_date: Dict[str, Union[str, List[Dict[str, Union[str, List[str], int]]]]]
+):
+    pass
