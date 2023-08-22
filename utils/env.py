@@ -8,7 +8,7 @@ class Env:
     DAY_VARS = ["MINIO_EXPIRE_TIME"]
 
     def __init__(self):
-        self._config = dotenv_values(".env")
+        self._config = dotenv_values("local.env")
         self.convert_to_bytes()
         self.convert_to_seconds()
         self.convert_to_days()
