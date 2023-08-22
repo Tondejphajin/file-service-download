@@ -3,7 +3,8 @@ from utils.env import Env
 from utils.s3_utils import S3Utils
 from app.api.models import FilePaths
 from datetime import datetime, timedelta, timezone
-
+from uuid import UUID
+from typing import Union, List, Dict
 
 env = Env()
 s3_utils = S3Utils()
@@ -98,7 +99,7 @@ class RedisUtils(RedisClient):
                             last_modified_redis_str = self.client.hget(
                                 key, "last_modified"
                             )
-                            last_modified_redis_obj = datetime.datetime.fromisoformat(
+                            last_modified_redis_obj = datetime.fromisoformat(
                                 last_modified_redis_str
                             )
                             (
@@ -205,22 +206,47 @@ class RedisUtils(RedisClient):
     ) -> None:
         self.client.hset(key, "request", json.dumps(file_paths))
 
-    def check_cached_multiple_paths(self, request1: list[FilePaths]) -> bool:
-        request2 = json.loads(self.client.hget("test", "request"))
+    def check_cached_multiple_paths(self, request1: list[FilePaths]) -> tuple[str, str]:
+        redis_key, download_url = None, None
 
-        if len(request1) != len(request2):
-            return False
+        # list all keys in redis
+        all_keys = self.client.keys()
+        for key in all_keys:
+            if self.client.type(key) == "hash":
+                try:
+                    UUID(key)
+                    request2 = json.loads(self.client.hget(key, "request"))
 
-        for dict1, dict2 in zip(request1, request2):
-            if dict1["path_name"] != dict2["path_name"]:
-                return False
-            if sorted(dict1["include"]) != sorted(dict2["include"]):
-                return False
-            if sorted(dict1["exclude"]) != sorted(dict2["exclude"]):
-                return False
-            if dict1["expired_time"] != dict2["expired_time"]:
-                return False
-            if dict1["version_id"] != dict2["version_id"]:
-                return False
+                    # check if the request is the same
+                    if len(request1) != len(request2):
+                        return None, None
+                    for dict1, dict2 in zip(request1, request2):
+                        if (
+                            dict1["path_name"] != dict2["path_name"]
+                            or sorted(dict1["include"]) != sorted(dict2["include"])
+                            or sorted(dict1["exclude"]) != sorted(dict2["exclude"])
+                            or dict1["version_id"] != dict2["version_id"]
+                        ):
+                            # Not the same request
+                            return None, None
+                        else:
+                            # same path_name, include, exclude, version_id
+                            redis_key = key
+                            download_url = self.client.hget(key, "url")
+                            return redis_key, download_url
+                    # Not the same request
+                    return None, None
+                except ValueError:
+                    continue
+        # Not the same request
+        return None, None
 
-        return True
+    def cached_multiple_paths_request(
+        self,
+        requested_data: Dict[
+            str, Union[str, List[Dict[str, Union[str, List[str], int]]]]
+        ],
+    ) -> None:
+        print(requested_data)
+        print("*" * 100)
+        print(requested_data["data"])
